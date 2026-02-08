@@ -1,5 +1,6 @@
 """Email routes for CRUD operations."""
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 from datetime import datetime
 from app.database import get_db
 from typing import Optional
@@ -7,7 +8,17 @@ from typing import Optional
 email_router = APIRouter(prefix="/emails", tags=["emails"])
 
 
-# Response schema models
+# Request/Response schema models
+class EmailCreate(BaseModel):
+    sender_name: str
+    sender_email: str
+    recipient: str
+    subject: str
+    body: str
+    sender_avatar: Optional[str] = None
+    attachments: Optional[str] = None
+
+
 class EmailResponse:
     def __init__(self, row):
         self.id = row[0]
@@ -87,15 +98,7 @@ def get_email(email_id: int):
 
 
 @email_router.post("")
-def create_email(
-    sender_name: str = Query(...),
-    sender_email: str = Query(...),
-    recipient: str = Query(...),
-    subject: str = Query(...),
-    body: str = Query(...),
-    sender_avatar: Optional[str] = Query(None),
-    attachments: Optional[str] = Query(None),
-):
+def create_email(email_data: EmailCreate):
     """Create a new email."""
     now = datetime.utcnow().isoformat() + "Z"
     
@@ -110,15 +113,15 @@ def create_email(
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?)
             """,
             (
-                sender_name,
-                sender_email,
-                sender_avatar or "📧",
-                recipient,
-                subject,
-                body,
-                body[:100] + "..." if len(body) > 100 else body,
+                email_data.sender_name,
+                email_data.sender_email,
+                email_data.sender_avatar or "📧",
+                email_data.recipient,
+                email_data.subject,
+                email_data.body,
+                email_data.body[:100] + "..." if len(email_data.body) > 100 else email_data.body,
                 datetime.now().strftime("%Y-%m-%d %I:%M %p"),
-                attachments,
+                email_data.attachments,
                 now,
                 now,
             ),

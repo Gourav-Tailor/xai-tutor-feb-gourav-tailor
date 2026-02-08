@@ -25,6 +25,7 @@ interface EmailListProps {
   filter: 'all' | 'unread' | 'archive';
   onFilterChange: (filter: 'all' | 'unread' | 'archive') => void;
   onSelectEmail: (email: Email) => void;
+  onArchiveEmail: (email: Email) => void;
   loading: boolean;
 }
 
@@ -34,6 +35,7 @@ export default function EmailList({
   filter,
   onFilterChange,
   onSelectEmail,
+  onArchiveEmail,
   loading,
 }: EmailListProps) {
   return (
@@ -92,8 +94,12 @@ export default function EmailList({
 
               {!email.is_read && <div className="unread-indicator"></div>}
 
-              <div className="email-actions">
-                <button className="action-btn" title="Archive">
+              <div className="email-actions" onClick={(e) => e.stopPropagation()}>
+                <button 
+                  className="action-btn" 
+                  title="Archive"
+                  onClick={() => onArchiveEmail(email)}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <polyline points="21 8 21 21 3 21 3 8 M1 3 L23 3"></polyline>
                     <polyline points="10 12 14 16 18 12"></polyline>

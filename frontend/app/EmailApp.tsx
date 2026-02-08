@@ -87,9 +87,9 @@ export default function EmailApp() {
     }
   };
 
-  const handleArchiveEmail = (emailId: number) => {
-    updateEmail(emailId, { is_archived: true });
-    if (selectedEmail?.id === emailId) {
+  const handleArchiveEmail = (email: Email) => {
+    updateEmail(email.id, { is_archived: true });
+    if (selectedEmail?.id === email.id) {
       setSelectedEmail(null);
     }
   };
@@ -134,12 +134,13 @@ export default function EmailApp() {
             filter={filter}
             onFilterChange={setFilter}
             onSelectEmail={handleEmailSelect}
+            onArchiveEmail={handleArchiveEmail}
             loading={loading}
           />
           {selectedEmail && (
             <EmailDetail
               email={selectedEmail}
-              onArchive={() => handleArchiveEmail(selectedEmail.id)}
+              onArchive={() => handleArchiveEmail(selectedEmail)}
               onDelete={() => handleDeleteEmail(selectedEmail.id)}
               onMarkAsRead={(isRead) => updateEmail(selectedEmail.id, { is_read: isRead })}
             />

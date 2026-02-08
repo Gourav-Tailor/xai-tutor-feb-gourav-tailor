@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import RichTextEditor from './RichTextEditor';
 
 interface Email {
   id: number;
@@ -29,24 +30,38 @@ interface EmailDetailProps {
 export default function EmailDetail({ email, onArchive, onDelete, onMarkAsRead }: EmailDetailProps) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [selectedRecipient, setSelectedRecipient] = useState(email.sender_email);
+  
+  // Sample recipient list - in a real app, this would come from contacts/API
+  const recipients = [
+    { email: email.sender_email, name: email.sender_name },
+    { email: 'richard@company.com', name: 'Richard Brown' },
+    { email: 'team@company.com', name: 'Team' },
+    { email: 'support@company.com', name: 'Support' },
+  ];
 
   const handleSendReply = async () => {
-    if (!replyText.trim()) return;
+    // Extract plain text from HTML for storage
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = replyText;
+    const plainText = tempDiv.textContent || tempDiv.innerText || '';
+    
+    if (!plainText.trim()) return;
 
     try {
       const response = await fetch('http://localhost:8000/emails', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
         },
-        body: new URLSearchParams({
+        body: JSON.stringify({
           sender_name: 'You',
           sender_email: 'richard@company.com',
-          recipient: email.sender_email,
+          recipient: selectedRecipient,
           subject: `Re: ${email.subject}`,
-          body: replyText,
+          body: plainText, // Store plain text, but we can also store HTML if needed
           sender_avatar: '👤',
-        }).toString(),
+        }),
       });
 
       if (response.ok) {
@@ -141,31 +156,57 @@ export default function EmailDetail({ email, onArchive, onDelete, onMarkAsRead }
 
           <div className="recipient-selector">
             <label>To:</label>
-            <input type="email" value={email.sender_email} readOnly className="recipient-input" />
+            <select
+              value={selectedRecipient}
+              onChange={(e) => setSelectedRecipient(e.target.value)}
+              className="recipient-select"
+            >
+              {recipients.map((recipient) => (
+                <option key={recipient.email} value={recipient.email}>
+                  {recipient.name} ({recipient.email})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="composer-body">
-            <textarea
+            <RichTextEditor
               value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
+              onChange={setReplyText}
               placeholder="Write your reply..."
-              className="reply-textarea"
+              className="reply-editor"
             />
           </div>
 
           <div className="composer-toolbar">
             <div className="toolbar-icons">
               <button className="toolbar-btn" title="Attach file">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4c-1.48 0-2.85.43-4.01 1.17l1.46 1.46C10.21 5.23 11.08 5 12 5c3.04 0 5.5 2.46 5.5 5.5v.5H19c1.66 0 3 1.34 3 3 0 1.13-.64 2.11-1.56 2.62l1.45 1.45C23.16 15.5 24 14.08 24 12.5c0-2.64-2.05-4.78-4.65-4.96z" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
                 </svg>
               </button>
               <button className="toolbar-btn" title="Add emoji">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="2" />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
                   <circle cx="9" cy="9" r="1.5" fill="currentColor" />
                   <circle cx="15" cy="9" r="1.5" fill="currentColor" />
-                  <path d="M8 14c1 1 2.5 2 4 2s3-1 4-2" fill="none" stroke="currentColor" strokeWidth="2" />
+                  <path d="M8 14c1 1 2.5 2 4 2s3-1 4-2" />
+                </svg>
+              </button>
+              <button className="toolbar-btn" title="Template">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+              </button>
+              <button className="toolbar-btn" title="More options">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="12" cy="19" r="2" />
                 </svg>
               </button>
             </div>
