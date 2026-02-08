@@ -54,11 +54,32 @@ export default function EmailApp() {
     }
   };
 
-  const handleEmailSelect = (email: Email) => {
+  const handleEmailSelect = async (email: Email) => {
+    // Immediately set the email to show the detail view
     setSelectedEmail(email);
-    // Mark email as read
-    if (!email.is_read) {
-      updateEmail(email.id, { is_read: true });
+    
+    // Fetch full email details to ensure we have the latest data
+    try {
+      const response = await fetch(`http://localhost:8000/emails/${email.id}`);
+      if (response.ok) {
+        const fullEmail = await response.json();
+        setSelectedEmail(fullEmail);
+        // Mark email as read if not already read
+        if (!fullEmail.is_read) {
+          updateEmail(fullEmail.id, { is_read: true });
+        }
+      } else {
+        // If fetch fails, email is already set above, just mark as read
+        if (!email.is_read) {
+          updateEmail(email.id, { is_read: true });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching email details:', error);
+      // If fetch fails, email is already set above, just mark as read
+      if (!email.is_read) {
+        updateEmail(email.id, { is_read: true });
+      }
     }
   };
 
@@ -76,11 +97,18 @@ export default function EmailApp() {
       });
 
       if (response.ok) {
-        fetchEmails();
-        if (selectedEmail?.id === emailId) {
-          const updatedEmail = await response.json();
-          setSelectedEmail(updatedEmail);
-        }
+        const updatedEmail = await response.json();
+        // Update the email in the list
+        setEmails((prevEmails) =>
+          prevEmails.map((e) => (e.id === emailId ? updatedEmail : e))
+        );
+        // Update selected email if it's the one being updated
+        setSelectedEmail((prevSelected) => {
+          if (prevSelected?.id === emailId) {
+            return updatedEmail;
+          }
+          return prevSelected;
+        });
       }
     } catch (error) {
       console.error('Error updating email:', error);
@@ -89,7 +117,8 @@ export default function EmailApp() {
 
   const handleArchiveEmail = (email: Email) => {
     updateEmail(email.id, { is_archived: true });
-    if (selectedEmail?.id === email.id) {
+    // Only clear selected email if we're filtering by non-archived emails
+    if (selectedEmail?.id === email.id && filter !== 'archive') {
       setSelectedEmail(null);
     }
   };
@@ -101,10 +130,15 @@ export default function EmailApp() {
       });
 
       if (response.ok) {
-        fetchEmails();
-        if (selectedEmail?.id === emailId) {
-          setSelectedEmail(null);
-        }
+        // Remove from emails list
+        setEmails((prevEmails) => prevEmails.filter((e) => e.id !== emailId));
+        // Clear selected email if it's the one being deleted
+        setSelectedEmail((prevSelected) => {
+          if (prevSelected?.id === emailId) {
+            return null;
+          }
+          return prevSelected;
+        });
       }
     } catch (error) {
       console.error('Error deleting email:', error);
